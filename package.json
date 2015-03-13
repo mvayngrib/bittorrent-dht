@@ -10,6 +10,9 @@
   "bugs": {
     "url": "https://github.com/feross/bittorrent-dht/issues"
   },
+  "browser": {
+    "dns": "dns.js"
+  },
   "dependencies": {
     "addr-to-ip-port": "^1.0.0",
     "bencode": "^0.7.0",
@@ -52,5 +55,8 @@
   "scripts": {
     "test": "standard && tape test/*.js",
     "test-live": "tape test/live/*.js"
+  },
+  "optionalDependencies": {
+    "dns.js": "^1.0.0"
   }
 }
