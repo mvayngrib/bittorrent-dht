@@ -242,7 +242,7 @@ DHT.prototype.announce = function (infoHash, port, cb) {
 
   // TODO: it would be nice to not use a table when a lookup is in progress
   var table = self.tables[infoHashHex]
-  if (table) {
+  if (table && table.count()) {
     onClosest(null, table.closest({ id: infoHash }, K))
   } else {
     self.lookup(infoHash, onClosest)
