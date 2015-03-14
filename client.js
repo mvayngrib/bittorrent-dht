@@ -19,6 +19,7 @@ var os = require('os')
 var parallel = require('run-parallel')
 var publicAddress = require('./lib/public-address')
 var string2compact = require('string2compact')
+var dezalgo = require('dezalgo')
 
 var BOOTSTRAP_NODES = [
   'router.bittorrent.com:6881',
@@ -245,7 +246,7 @@ DHT.prototype.announce = function (infoHash, port, cb) {
 
   // TODO: it would be nice to not use a table when a lookup is in progress
   var table = self.tables[infoHashHex]
-  if (table) {
+  if (table && table.count()) {
     onClosest(null, table.closest({ id: infoHash }, K))
   } else {
     self.lookup(infoHash, onClosest)
@@ -267,7 +268,7 @@ DHT.prototype.announce = function (infoHash, port, cb) {
  */
 DHT.prototype.destroy = function (cb) {
   var self = this
-  cb = once(cb || noop)
+  cb = once(dezalgo(cb || noop))
   if (self.destroyed) return cb(new Error('dht is destroyed'))
   if (self._binding) return self.once('listening', self.destroy.bind(self, cb))
   self._debug('destroy')
