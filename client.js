@@ -19,6 +19,7 @@ var os = require('os')
 var parallel = require('run-parallel')
 var publicAddress = require('./lib/public-address')
 var string2compact = require('string2compact')
+var dezalgo = require('dezalgo')
 
 var BOOTSTRAP_NODES = [
   'router.bittorrent.com:6881',
@@ -265,7 +266,7 @@ DHT.prototype.announce = function (infoHash, port, cb) {
 DHT.prototype.destroy = function (cb) {
   var self = this
   if (!cb) cb = function () {}
-  cb = once(cb)
+  cb = once(dezalgo(cb))
   if (self.destroyed) return cb(new Error('dht is destroyed'))
   if (self._binding) return self.once('listening', self.destroy.bind(self, cb))
   self._debug('destroy')
