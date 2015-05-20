@@ -227,11 +227,15 @@ DHT.prototype.address = function () {
  * Announce that the peer, controlling the querying node, is downloading a torrent on a
  * port.
  * @param  {string|Buffer} infoHash
- * @param  {number} port
+ * @param  {number} port - omit to use implied_port
  * @param  {function=} cb
  */
 DHT.prototype.announce = function (infoHash, port, cb) {
   var self = this
+  if (typeof port === 'function') {
+    cb = port
+    port = null
+  }
   if (!cb) cb = noop
   if (self.destroyed) return cb(new Error('dht is destroyed'))
 
@@ -1017,7 +1021,7 @@ DHT.prototype._sendAnnouncePeer = function (addr, infoHash, port, token, cb) {
       info_hash: infoHash,
       port: port,
       token: token,
-      implied_port: 0
+      implied_port: port == null ? 1 : 0
     }
   }
 
