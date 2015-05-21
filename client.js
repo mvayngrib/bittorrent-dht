@@ -137,6 +137,7 @@ function DHT (opts) {
 
   publicAddress(function (err, ip) {
     if (err) return self._debug('failed to get public ip: %s', err.message || err)
+    self._publicIP = ip
     self.localAddresses.push(ip)
   })
 
@@ -238,6 +239,10 @@ DHT.prototype.announce = function (infoHash, port, cb) {
   }
   if (!cb) cb = noop
   if (self.destroyed) return cb(new Error('dht is destroyed'))
+  if (!port) port = this._port // will use implied_port
+  if (!port) {
+    return this.once('listening', this.announce.bind(this, infoHash, port, cb))
+  }
 
   infoHash = idToBuffer(infoHash)
   var infoHashHex = idToHexString(infoHash)
@@ -245,7 +250,9 @@ DHT.prototype.announce = function (infoHash, port, cb) {
   self._debug('announce %s %s', infoHashHex, port)
 
   self.localAddresses.forEach(function (address) {
-    self._addPeer(address + ':' + port, infoHashHex)
+    if (port !== self._port || address !== self._publicIP) {
+      self._addPeer(address + ':' + port, infoHashHex)
+    }
   })
 
   // TODO: it would be nice to not use a table when a lookup is in progress
@@ -1021,7 +1028,7 @@ DHT.prototype._sendAnnouncePeer = function (addr, infoHash, port, token, cb) {
       info_hash: infoHash,
       port: port,
       token: token,
-      implied_port: port == null ? 1 : 0
+      implied_port: port == null || port === self._port ? 1 : 0
     }
   }
 
