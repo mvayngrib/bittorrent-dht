@@ -135,11 +135,8 @@ function DHT (opts) {
    */
   self.localAddresses = [ networkAddress.ipv4() ]
 
-  publicAddress(function (err, ip) {
-    if (err) return self._debug('failed to get public ip: %s', err.message || err)
-    self._publicIP = ip
-    self.localAddresses.push(ip)
-  })
+  if (opts.publicAddress) onPublicAddress(null, opts.publicAddress)
+  else publicAddress(onPublicAddress)
 
   // Create socket and attach listeners
   self.socket = module.exports.dgram.createSocket('udp' + self._ipv)
@@ -170,6 +167,26 @@ function DHT (opts) {
   self.on('ready', function () {
     self._debug('emit ready')
   })
+
+  function onPublicAddress(err, ip) {
+    if (err) return self._debug('failed to get public ip: %s', err.message || err)
+    self.publicAddress(ip)
+  }
+}
+
+DHT.prototype.publicAddress = function(ip) {
+  var self = this
+  if (!arguments.length) return self._publicAddress
+
+  if (self._publicAddress) {
+    var idx = self.localAddresses.indexOf(self._publicAddress)
+    self.localAddresses.splice(idx, 1)
+  }
+
+  self._publicAddress = ip
+  if (self.localAddresses.indexOf(ip) === -1) {
+    self.localAddresses.push(ip)
+  }
 }
 
 /**
@@ -250,9 +267,7 @@ DHT.prototype.announce = function (infoHash, port, cb) {
   self._debug('announce %s %s', infoHashHex, port)
 
   self.localAddresses.forEach(function (address) {
-    if (port !== self._port || address !== self._publicIP) {
-      self._addPeer(address + ':' + port, infoHashHex)
-    }
+    self._addPeer(address + ':' + port, infoHashHex)
   })
 
   // TODO: it would be nice to not use a table when a lookup is in progress
@@ -692,7 +707,6 @@ DHT.prototype._onData = function (data, rinfo) {
   var self = this
   var addr = rinfo.address + ':' + rinfo.port
   var message, errMessage
-
   try {
     message = bencode.decode(data)
     if (!message) throw new Error('message is empty')
