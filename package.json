@@ -55,7 +55,8 @@
     "url": "git://github.com/feross/bittorrent-dht.git"
   },
   "scripts": {
-    "test": "standard && tape test/*.js",
+    "style": "standard",
+    "test": "tape test/*.js",
     "test-live": "tape test/live/*.js"
   },
   "optionalDependencies": {
