@@ -56,6 +56,8 @@ for (var i in interfaces) {
   }
 }
 
+var noop = function () {}
+
 inherits(DHT, EventEmitter)
 
 /**
@@ -141,7 +143,7 @@ function DHT (opts) {
   self.socket = module.exports.dgram.createSocket('udp' + self._ipv)
   self.socket.on('message', self._onData.bind(self))
   self.socket.on('listening', self._onListening.bind(self))
-  self.socket.on('error', function () {}) // throw away errors
+  self.socket.on('error', noop) // throw away errors
 
   self._rotateSecrets()
   self._rotateInterval = setInterval(self._rotateSecrets.bind(self), ROTATE_INTERVAL)
@@ -229,7 +231,7 @@ DHT.prototype.address = function () {
  */
 DHT.prototype.announce = function (infoHash, port, cb) {
   var self = this
-  if (!cb) cb = function () {}
+  if (!cb) cb = noop
   if (self.destroyed) return cb(new Error('dht is destroyed'))
 
   infoHash = idToBuffer(infoHash)
@@ -265,8 +267,7 @@ DHT.prototype.announce = function (infoHash, port, cb) {
  */
 DHT.prototype.destroy = function (cb) {
   var self = this
-  if (!cb) cb = function () {}
-  cb = once(cb)
+  cb = once(cb || noop)
   if (self.destroyed) return cb(new Error('dht is destroyed'))
   if (self._binding) return self.once('listening', self.destroy.bind(self, cb))
   self._debug('destroy')
@@ -542,8 +543,7 @@ DHT.prototype.lookup = function (id, opts, cb) {
     opts = {}
   }
   if (!opts) opts = {}
-  if (!cb) cb = function () {}
-  cb = once(cb)
+  cb = once(cb || noop)
 
   id = idToBuffer(id)
   var idHex = idToHexString(id)
@@ -785,7 +785,7 @@ DHT.prototype._send = function (addr, message, cb) {
   var self = this
   if (self._binding) return self.once('listening', self._send.bind(self, addr, message, cb))
   if (!self.listening) return self.listen(self._send.bind(self, addr, message, cb))
-  if (!cb) cb = function () {}
+  if (!cb) cb = noop
   var addrData = addrToIPPort(addr)
   var host = addrData[0]
   var port = addrData[1]
@@ -1008,7 +1008,6 @@ DHT.prototype._onGetPeers = function (addr, message) {
 DHT.prototype._sendAnnouncePeer = function (addr, infoHash, port, token, cb) {
   var self = this
   infoHash = idToBuffer(infoHash)
-  if (!cb) cb = function () {}
 
   var data = {
     q: 'announce_peer',
@@ -1103,7 +1102,7 @@ DHT.prototype._sendError = function (addr, transactionId, code, errMessage) {
  */
 DHT.prototype._getTransactionId = function (addr, fn) {
   var self = this
-  fn = once(fn)
+  fn = once(fn || noop)
   var reqs = self.transactions[addr]
   if (!reqs) {
     reqs = self.transactions[addr] = {}
