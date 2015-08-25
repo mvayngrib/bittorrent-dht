@@ -223,6 +223,14 @@ DHT.prototype.listen = function (port, address, onlistening) {
   self.socket.bind(port, address)
 }
 
+DHT.prototype.isBinding = function () {
+  return this._binding
+}
+
+DHT.prototype.isListening = function () {
+  return this.listening
+}
+
 /**
  * Called when DHT is listening for UDP messages.
  */

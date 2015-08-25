@@ -115,3 +115,16 @@ test('queue msg while binding', function (t) {
     })
   })
 })
+
+test('isBinding, isListening', function (t) {
+  t.plan(4)
+
+  var a = new DHT({ bootstrap: false })
+  a.listen(function () {
+    t.equal(a.isBinding(), false)
+    t.equal(a.isListening(), true)
+  })
+
+  t.equal(a.isBinding(), true)
+  t.equal(a.isListening(), false)
+})
