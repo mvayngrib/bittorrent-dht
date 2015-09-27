@@ -1,6 +1,7 @@
 var common = require('./common')
 var DHT = require('../')
 var test = require('tape')
+var LOCAL_HOSTS = require('../lib/localHosts')
 
 test('`ping` query send and response', function (t) {
   t.plan(2)
@@ -116,11 +117,17 @@ test('`get_peers` query to node with peers in table', function (t) {
 
   var targetInfoHash = common.randomId()
 
-  dht1._addPeer('1.1.1.1:6969', targetInfoHash)
-  dht1._addPeer('10.10.10.10:6969', targetInfoHash)
-  dht1._addPeer('255.255.255.255:6969', targetInfoHash)
-
   dht1.listen(function () {
+    // none of these should show be
+    // broadcast to the outside
+    LOCAL_HOSTS[dht1._ipv].forEach(function (ip) {
+      dht1._addPeer(ip + ':' + dht1.address().port, targetInfoHash)
+    })
+
+    dht1._addPeer('1.1.1.1:6969', targetInfoHash)
+    dht1._addPeer('10.10.10.10:6969', targetInfoHash)
+    dht1._addPeer('255.255.255.255:6969', targetInfoHash)
+
     dht2._sendGetPeers('127.0.0.1:' + dht1.address().port, targetInfoHash, function (err, res) {
       t.error(err)
       t.deepEqual(res.id, dht1.nodeId)

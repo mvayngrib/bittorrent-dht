@@ -15,9 +15,9 @@ var isIP = require('is-ip')
 var KBucket = require('k-bucket')
 var networkAddress = require('network-address')
 var once = require('once')
-var os = require('os')
 var parallel = require('run-parallel')
 var publicAddress = require('./lib/public-address')
+var LOCAL_HOSTS = require('./lib/localHosts')
 var string2compact = require('string2compact')
 var dezalgo = require('dezalgo')
 
@@ -45,16 +45,6 @@ var ERROR_TYPE = module.exports.ERROR_TYPE = {
   SERVER: 202,
   PROTOCOL: 203, // malformed packet, invalid arguments, or bad token
   METHOD_UNKNOWN: 204
-}
-
-var LOCAL_HOSTS = { 4: [], 6: [] }
-var interfaces = os.networkInterfaces()
-for (var i in interfaces) {
-  for (var j = 0; j < interfaces[i].length; j++) {
-    var face = interfaces[i][j]
-    if (face.family === 'IPv4') LOCAL_HOSTS[4].push(face.address)
-    if (face.family === 'IPv6') LOCAL_HOSTS[6].push(face.address)
-  }
 }
 
 var noop = function () {}
@@ -178,14 +168,13 @@ DHT.prototype.publicAddress = function(ip) {
   var self = this
   if (!arguments.length) return self._publicAddress
 
-  if (self._publicAddress) {
-    var idx = self.localAddresses.indexOf(self._publicAddress)
-    self.localAddresses.splice(idx, 1)
-  }
-
   self._publicAddress = ip
   if (self.localAddresses.indexOf(ip) === -1) {
     self.localAddresses.push(ip)
+  }
+
+  if (LOCAL_HOSTS[self._ipv].indexOf(ip) === -1) {
+    LOCAL_HOSTS[self._ipv].push(ip)
   }
 }
 
@@ -273,6 +262,11 @@ DHT.prototype.announce = function (infoHash, port, cb) {
   var infoHashHex = idToHexString(infoHash)
 
   self._debug('announce %s %s', infoHashHex, port)
+
+  var publicAddr = self.publicAddress()
+  if (publicAddr) {
+    self._addPeer(publicAddr + ':' + port, infoHashHex)
+  }
 
   self.localAddresses.forEach(function (address) {
     self._addPeer(address + ':' + port, infoHashHex)
@@ -369,6 +363,8 @@ DHT.prototype.addNode = function (addr, nodeId) {
 DHT.prototype._addNode = function (addr, nodeId, from) {
   var self = this
   if (self.destroyed) return
+  if (self._addrIsSelf(addr)) return
+
   nodeId = idToBuffer(nodeId)
 
   if (nodeId.length !== 20) {
@@ -595,8 +591,10 @@ DHT.prototype.lookup = function (id, opts, cb) {
   if (peers) {
     peers = parsePeerInfo(peers.list)
     peers.forEach(function (peerAddr) {
-      self._debug('emit peer %s %s from %s', peerAddr, idHex, 'local')
-      self.emit('peer', peerAddr, idHex, 'local')
+      if (!self._addrIsSelf(peerAddr)) {
+        self._debug('emit peer %s %s from %s', peerAddr, idHex, 'local')
+        self.emit('peer', peerAddr, idHex, 'local')
+      }
     })
   }
 
@@ -971,8 +969,10 @@ DHT.prototype._sendGetPeers = function (addr, infoHash, cb) {
     if (res.values) {
       res.values = parsePeerInfo(res.values)
       res.values.forEach(function (peerAddr) {
-        self._debug('emit peer %s %s from %s', peerAddr, infoHashHex, addr)
-        self.emit('peer', peerAddr, infoHashHex, addr)
+        if (!self._addrIsSelf(peerAddr)) {
+          self._debug('emit peer %s %s from %s', peerAddr, infoHashHex, addr)
+          self.emit('peer', peerAddr, infoHashHex, addr)
+        }
       })
     }
     cb(null, res)
@@ -1018,6 +1018,18 @@ DHT.prototype._onGetPeers = function (addr, message) {
   }
 
   var peers = self.peers[infoHashHex] && self.peers[infoHashHex].list
+  if (peers) {
+    peers = peers.filter(function (p) {
+      var addr = compact2string(p)
+      return self._addrIsSelf(addr) ?
+        // only advertise external ip
+        self._publicAddress === addrToIPPort(addr)[0] :
+        true
+    })
+
+    if (!peers.length) peers = null
+  }
+
   if (peers) {
     // We know of peers for the target info hash. Peers are stored as an array of
     // compact peer info, so return it as-is.
