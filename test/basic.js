@@ -123,6 +123,7 @@ test('isBinding, isListening', function (t) {
   a.listen(function () {
     t.equal(a.isBinding(), false)
     t.equal(a.isListening(), true)
+    a.destroy()
   })
 
   t.equal(a.isBinding(), true)
