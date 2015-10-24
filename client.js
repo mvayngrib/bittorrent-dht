@@ -283,7 +283,11 @@ DHT.prototype.announce = function (infoHash, port, cb) {
   function onClosest (err, closest) {
     if (err) return cb(err)
     closest.forEach(function (contact) {
-      self._sendAnnouncePeer(contact.addr, infoHash, port, contact.token)
+      self._sendAnnouncePeer(contact.addr, infoHash, port, contact.token, function (err) {
+        if (err && err.message.indexOf('203') === 0) {
+          table.remove(contact) // most likely bad token
+        }
+      })
     })
     self._debug('announce end %s %s', infoHashHex, port)
     cb(null)
