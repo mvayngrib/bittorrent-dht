@@ -516,19 +516,21 @@ DHT.prototype._bootstrap = function (nodes) {
           self.emit('ready')
         }
       })
-    }
-    lookup()
 
-    // TODO: keep retrying after one failure
-    self._bootstrapTimeout = setTimeout(function () {
-      if (self.destroyed) return
-      // If 0 nodes are in the table after a timeout, retry with bootstrap nodes
-      if (self.nodes.count() === 0) {
-        self._debug('No DHT bootstrap nodes replied, retry')
-        lookup()
-      }
-    }, BOOTSTRAP_TIMEOUT)
-    if (self._bootstrapTimeout.unref) self._bootstrapTimeout.unref()
+      // TODO: keep retrying after one failure
+      self._bootstrapTimeout = setTimeout(function () {
+        if (self.destroyed) return
+        // If 0 nodes are in the table after a timeout, retry with bootstrap nodes
+        if (self.nodes.count() === 0) {
+          self._debug('No DHT bootstrap nodes replied, retry')
+          lookup()
+        }
+      }, BOOTSTRAP_TIMEOUT)
+
+      if (self._bootstrapTimeout.unref) self._bootstrapTimeout.unref()
+    }
+
+    lookup()
   })
 }
 
