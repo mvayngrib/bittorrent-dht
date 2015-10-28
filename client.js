@@ -523,7 +523,7 @@ DHT.prototype._bootstrap = function (nodes) {
         // If 0 nodes are in the table after a timeout, retry with bootstrap nodes
         if (self.nodes.count() === 0) {
           self._debug('No DHT bootstrap nodes replied, retry')
-          lookup()
+          self._bootstrap(nodes)
         }
       }, BOOTSTRAP_TIMEOUT)
 
