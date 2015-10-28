@@ -313,6 +313,7 @@ DHT.prototype.destroy = function (cb) {
   self.tables = null
   self.transactions = null
   self.peers = null
+  self._resolved = null
 
   clearTimeout(self._bootstrapTimeout)
   clearInterval(self._rotateInterval)
@@ -513,6 +514,7 @@ DHT.prototype._bootstrap = function (nodes) {
         // succeeding.
         if (!self.ready) {
           self.ready = true
+          self._resolved = null
           self.emit('ready')
         }
       })
@@ -542,15 +544,23 @@ DHT.prototype._bootstrap = function (nodes) {
  */
 DHT.prototype._resolveContacts = function (contacts, done) {
   var self = this
+
+  if (!self._resolved) self._resolved = {}
   var tasks = contacts.map(function (contact) {
     return function (cb) {
-      var addrData = addrToIPPort(contact.addr)
+      var unresolved = contact.addr
+      var addrData = addrToIPPort(unresolved)
       if (isIP(addrData[0])) {
         cb(null, contact)
       } else {
+        var cached = self._resolved[unresolved]
+        if (cached) return cb(null, cached)
+
         dnsLookup(addrData[0], self._ipv, function (err, host) {
           if (err) return cb(null, null)
+
           contact.addr = host + ':' + addrData[1]
+          self._resolved[unresolved] = contact
           cb(null, contact)
         })
       }
@@ -667,7 +677,7 @@ DHT.prototype.lookup = function (id, opts, cb) {
 
     // ignore errors - they are just timeouts
     if (err) {
-      self._debug('got lookup error: %s', err.message)
+      self._debug('got lookup error: %s (%s)', err.message, addr)
     } else {
       self._debug('got lookup response from %s', nodeIdHex)
 
