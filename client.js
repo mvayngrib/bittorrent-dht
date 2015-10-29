@@ -512,6 +512,13 @@ DHT.prototype._bootstrap = function (nodes) {
         // emit `ready` once the recursive lookup for our own node ID is finished
         // (successful or not), so that later get_peer lookups will have a good shot at
         // succeeding.
+
+        if (!self.nodes.count()) {
+          clearTimeout(self._bootstrapTimeout)
+          self._bootstrap(nodes)
+          return
+        }
+
         if (!self.ready) {
           self.ready = true
           self._resolved = null
@@ -661,6 +668,10 @@ DHT.prototype.lookup = function (id, opts, cb) {
   }
 
   function queryClosest () {
+    if (!self.nodes.count()) {
+      return cb(new Error('no nodes in table'))
+    }
+
     self.nodes.closest({ id: id }, K).forEach(function (contact) {
       query(contact.addr)
     })
