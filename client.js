@@ -1045,17 +1045,17 @@ DHT.prototype._onGetPeers = function (addr, message) {
   }
 
   var peers = self.peers[infoHashHex] && self.peers[infoHashHex].list
-  if (peers) {
-    peers = peers.filter(function (p) {
-      var addr = compact2string(p)
-      return self._addrIsSelf(addr) ?
-        // only advertise external ip
-        self._publicAddress === addrToIPPort(addr)[0] :
-        true
-    })
+  // if (peers) {
+  //   peers = peers.filter(function (p) {
+  //     var addr = compact2string(p)
+  //     return self._addrIsSelf(addr) ?
+  //       // only advertise external ip
+  //       self._publicAddress === addrToIPPort(addr)[0] :
+  //       true
+  //   })
 
-    if (!peers.length) peers = null
-  }
+  //   if (!peers.length) peers = null
+  // }
 
   if (peers) {
     // We know of peers for the target info hash. Peers are stored as an array of
