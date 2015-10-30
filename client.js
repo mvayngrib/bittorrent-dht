@@ -284,7 +284,7 @@ DHT.prototype.announce = function (infoHash, port, cb) {
     if (err) return cb(err)
     closest.forEach(function (contact) {
       self._sendAnnouncePeer(contact.addr, infoHash, port, contact.token, function (err) {
-        if (err && err.message.indexOf('203') === 0) {
+        if (table && err && err.message.indexOf('203') === 0) {
           table.remove(contact) // most likely bad token
         }
       })
@@ -509,15 +509,21 @@ DHT.prototype._bootstrap = function (nodes) {
       }, function (err) {
         if (err) self._debug('lookup error during bootstrap: %s', err.message)
 
+        clearTimeout(self._bootstrapTimeout)
+        if (!self.nodes.count()) {
+          self._debug('No DHT bootstrap nodes replied, retry')
+          // TODO: keep retrying after one failure
+          self._bootstrapTimeout = setTimeout(function () {
+            self._bootstrap(nodes)
+          }, BOOTSTRAP_TIMEOUT)
+
+          if (self._bootstrapTimeout.unref) self._bootstrapTimeout.unref()
+          return
+        }
+
         // emit `ready` once the recursive lookup for our own node ID is finished
         // (successful or not), so that later get_peer lookups will have a good shot at
         // succeeding.
-
-        if (!self.nodes.count()) {
-          clearTimeout(self._bootstrapTimeout)
-          self._bootstrap(nodes)
-          return
-        }
 
         if (!self.ready) {
           self.ready = true
@@ -525,18 +531,6 @@ DHT.prototype._bootstrap = function (nodes) {
           self.emit('ready')
         }
       })
-
-      // TODO: keep retrying after one failure
-      self._bootstrapTimeout = setTimeout(function () {
-        if (self.destroyed) return
-        // If 0 nodes are in the table after a timeout, retry with bootstrap nodes
-        if (self.nodes.count() === 0) {
-          self._debug('No DHT bootstrap nodes replied, retry')
-          self._bootstrap(nodes)
-        }
-      }, BOOTSTRAP_TIMEOUT)
-
-      if (self._bootstrapTimeout.unref) self._bootstrapTimeout.unref()
     }
 
     lookup()
