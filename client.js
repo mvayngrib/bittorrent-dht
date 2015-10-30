@@ -209,7 +209,9 @@ DHT.prototype.listen = function (port, address, onlistening) {
   self._binding = true
 
   self._debug('listen %s', port)
-  self.socket.bind(port, address)
+  self.socket.bind(port, address, function (err) {
+    if (err) self.emit('error', err)
+  })
 }
 
 DHT.prototype.isBinding = function () {
