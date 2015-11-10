@@ -512,6 +512,8 @@ DHT.prototype._bootstrap = function (nodes) {
         if (err) self._debug('lookup error during bootstrap: %s', err.message)
 
         clearTimeout(self._bootstrapTimeout)
+        if (self.destroyed) return
+
         if (!self.nodes.count()) {
           self._debug('No DHT bootstrap nodes replied, retry')
           // TODO: keep retrying after one failure
