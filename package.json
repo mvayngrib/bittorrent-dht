@@ -1,5 +1,5 @@
 {
-  "name": "bittorrent-dht",
+  "name": "@tradle/bittorrent-dht",
   "description": "Simple, robust, BitTorrent DHT implementation",
   "version": "3.2.1",
   "author": {
